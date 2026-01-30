@@ -19,6 +19,7 @@ const userCtrl = require('../controllers/user');
  * Cette route appelle la fonction signup du controller utilisateur.
  */
 router.post('/signup', userCtrl.signup);
+router.post('/login', userCtrl.login);
 
 // Export du routeur pour l'utiliser dans app.js
 module.exports = router;

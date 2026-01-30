@@ -8,9 +8,10 @@
  */
 require('dotenv').config(); // Chargement des variables d'environnement
 
-const express = require('express');
-const mongoose = require('mongoose');
-const userRoutes = require('./routes/user');
+const express = require('express'); // Framework web Express
+const mongoose = require('mongoose'); // ODM pour MongoDB
+const userRoutes = require('./routes/user'); // Routes utilisateur
+const auth = require('./middleware/auth'); // Middleware d'authentification
 
 const app = express();
 
@@ -55,5 +56,13 @@ app.use('/api/auth', userRoutes);
 app.get('/', (req, res) => {
     res.json({ message: 'API Mon Vieux Grimoire OK' });
 });
+
+// Route de test protégée par le middleware d'authentification
+app.get('/api/test-auth', auth, (req, res) => {
+    res.json({
+        message: 'Accès autorisé',
+        userId: req.auth.userId
+    });
+})
 
 module.exports = app;
