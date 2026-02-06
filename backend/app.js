@@ -11,7 +11,9 @@ require('dotenv').config(); // Chargement des variables d'environnement
 const express = require('express'); // Framework web Express
 const mongoose = require('mongoose'); // ODM pour MongoDB
 const userRoutes = require('./routes/user'); // Routes utilisateur
+const bookRoutes = require('./routes/book'); // Routes livres
 const auth = require('./middleware/auth'); // Middleware d'authentification
+const path = require('path'); // Module pour gérer les chemins de fichiers
 
 const app = express();
 
@@ -50,19 +52,16 @@ app.use((req, res, next) => {
 app.use('/api/auth', userRoutes);
 
 /**
- * Route de test
- * Permet de vérifier rapidement que l'API est accessible.
+ * Routes des livres
+ * Toutes les routes définies dans bookRoutes sont accessibles
+ * via le préfixe /api/books.
  */
-app.get('/', (req, res) => {
-    res.json({ message: 'API Mon Vieux Grimoire OK' });
-});
+app.use('/api/books', bookRoutes);
 
-// Route de test protégée par le middleware d'authentification
-app.get('/api/test-auth', auth, (req, res) => {
-    res.json({
-        message: 'Accès autorisé',
-        userId: req.auth.userId
-    });
-})
+/**
+ * Middleware pour servir les fichiers images statiques
+ * Les images de couverture des livres sont accessibles via /images/nom_du_fichier
+ */
+app.use('/images', express.static(path.join(__dirname, 'images')));
 
 module.exports = app;
