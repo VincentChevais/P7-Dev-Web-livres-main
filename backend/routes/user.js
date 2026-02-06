@@ -19,6 +19,13 @@ const userCtrl = require('../controllers/user');
  * Cette route appelle la fonction signup du controller utilisateur.
  */
 router.post('/signup', userCtrl.signup);
+
+/**
+ * Route de connexion (login)
+ * Méthode : POST
+ * URL finale : /api/auth/login
+ * Cette route appelle la fonction login du controller utilisateur.
+ */
 router.post('/login', userCtrl.login);
 
 // Export du routeur pour l'utiliser dans app.js

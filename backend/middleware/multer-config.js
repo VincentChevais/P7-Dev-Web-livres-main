@@ -37,4 +37,16 @@ const storage = multer.diskStorage({
 });
 
 // Export du middleware configuré pour un seul fichier "image"
-module.exports = multer({ storage: storage }).single('image');
+module.exports = multer({
+    storage: storage,
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 2 Mo max
+    },
+    fileFilter: (req, file, cb) => {
+        if (MIME_TYPES[file.mimetype]) {
+            cb(null, true);
+        } else {
+            cb(new Error('Type de fichier non supporté'), false);
+        }
+    }
+}).single('image');

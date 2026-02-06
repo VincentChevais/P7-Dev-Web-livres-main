@@ -25,16 +25,18 @@ const bookCtrl = require('../controllers/book');
 router.get('/', bookCtrl.getAllBooks);
 
 /**
+ * Récupérer les 3 livres les mieux notés (PUBLIC)
+ * GET /api/books/bestrating
+ */
+router.get('/bestrating', bookCtrl.getBestRatingBooks);
+
+/**
  * Récupérer un livre par son id (PUBLIC)
  * GET /api/books/:id
  */
 router.get('/:id', bookCtrl.getOneBook);
 
-/**
- * Récupérer les 3 livres les mieux notés (PUBLIC)
- * GET /api/books/bestrating
- */
-router.get('/bestrating', bookCtrl.getBestRatingBooks);
+
 
 /**
  * Créer un nouveau livre (PRIVÉ)
@@ -46,7 +48,7 @@ router.post('/', auth, multer, bookCtrl.createBook);
  * Modifier un livre existant (PRIVÉ)
  * PUT /api/books/:id
  */
-router.put('/:id', auth, bookCtrl.modifyBook);
+router.put('/:id', auth, multer, bookCtrl.modifyBook);
 
 /**
  * Supprimer un livre (PRIVÉ)
