@@ -9,8 +9,11 @@
 const express = require('express');
 const router = express.Router();
 
-// Middleware d'authentification JWT (toutes les routes books sont protégées)
+// Middleware d'authentification JWT 
 const auth = require('../middleware/auth');
+
+// Import du middleware de validation pour les livres 
+const { validateBook } = require('../middleware/validators');
 
 // Middleware de gestion des fichiers (images de couverture)
 const multer = require('../middleware/multer-config');
@@ -42,13 +45,13 @@ router.get('/:id', bookCtrl.getOneBook);
  * Créer un nouveau livre (PRIVÉ)
  * POST /api/books
  */
-router.post('/', auth, multer, bookCtrl.createBook);
+router.post('/', auth, multer, validateBook, bookCtrl.createBook);
 
 /**
  * Modifier un livre existant (PRIVÉ)
  * PUT /api/books/:id
  */
-router.put('/:id', auth, multer, bookCtrl.modifyBook);
+router.put('/:id', auth, multer, validateBook, bookCtrl.modifyBook);
 
 /**
  * Supprimer un livre (PRIVÉ)

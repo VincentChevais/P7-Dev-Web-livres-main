@@ -23,53 +23,58 @@ const Book = require('../models/Book'); // Modèle Mongoose Book
 const fs = require('fs'); // Module pour gérer les fichiers (suppression d'images)
 const sharp = require('sharp'); // Module pour traiter les images (redimensionnement)
 const path = require('path'); // Module pour gérer les chemins de fichiers
+const { throwError } = require('../utils/errorHandler'); // Module pour gérer les erreurs de validation
 
 /**
  * Récupérer tous les livres
  * GET /api/books
  */
-exports.getAllBooks = (req, res, next) => {
-    Book.find()
-        .then(books => {
-            res.status(200).json(books);
-        })
-        .catch(error => {
-            res.status(500).json({ error });
-        });
+exports.getAllBooks = async (req, res, next) => {
+    try {
+        const books = await Book.find();
+        res.status(200).json(books);
+    } catch (error) {
+        // Toute erreur technique est transmise au middleware global
+        next(error);
+    }
 };
+
 
 /**
  * Récupérer un livre par son id
  * GET /api/books/:id
  */
-exports.getOneBook = (req, res, next) => {
-    Book.findOne({ _id: req.params.id })
-        .then(book => {
-            if (!book) {
-                return res.status(404).json({ error: 'Livre non trouvé' });
-            }
-            res.status(200).json(book);
-        })
-        .catch(error => {
-            res.status(500).json({ error });
-        });
+exports.getOneBook = async (req, res, next) => {
+    try {
+        const book = await Book.findOne({ _id: req.params.id });
+
+        if (!book) {
+            throwError(req, 404, 'Livre non trouvé');
+        }
+
+        res.status(200).json(book);
+    } catch (error) {
+        next(error); // Middleware global d'erreur gère la 500
+    }
 };
+
 
 /**
  * Récupérer les 3 livres les mieux notés
  * GET /api/books/bestrating
  */
-exports.getBestRatingBooks = (req, res, next) => {
-    Book.find()
-        .sort({ averageRating: -1 }) // tri décroissant sur la note moyenne
-        .limit(3) // on limite à 3 résultats
-        .then(books => {
-            res.status(200).json(books);
-        })
-        .catch(error => {
-            res.status(500).json({ error });
-        });
+exports.getBestRatingBooks = async (req, res, next) => {
+    try {
+        const books = await Book.find()
+            .sort({ averageRating: -1 }) // tri décroissant sur la note moyenne
+            .limit(3); // on limite à 3 résultats
+
+        res.status(200).json(books);
+    } catch (error) {
+        next(error); // Middleware global gère la 500
+    }
 };
+
 
 /**
  * Création d'un nouveau livre
@@ -99,15 +104,15 @@ exports.createBook = async (req, res, next) => {
         if (Array.isArray(bookObject.ratings) && bookObject.ratings.length > 0) {
             const firstRating = bookObject.ratings[0].grade;
 
-            // Validation de la note
+            // Validation de la note (entre 1 et 5)
             if (typeof firstRating === 'number' && firstRating > 0 && firstRating <= 5) {
                 ratings = [{ userId: userId, grade: firstRating }];
                 averageRating = firstRating;
-                // Si firstRating === 0 (ou invalide) -> on IGNORE : pas de note à la création
+                // Si la note est 0 ou invalide, on ignore : pas de note à la création
             }
         }
 
-        // On supprime les champs sensibles envoyés par le client (on les reconstruit nous-mêmes)
+        // On supprime les champs sensibles envoyés par le client 
         delete bookObject.ratings;
         delete bookObject.averageRating;
 
@@ -122,7 +127,9 @@ exports.createBook = async (req, res, next) => {
 
         // Suppression du fichier brut uploadé par Multer
         fs.unlink(req.file.path, (err) => {
-            if (err) console.error('Erreur suppression fichier temporaire :', err);
+            if (err) {
+                console.error('Erreur suppression fichier temporaire :', err);
+            }
         });
 
         // Création du livre
@@ -140,10 +147,12 @@ exports.createBook = async (req, res, next) => {
         res.status(201).json({ message: 'Livre enregistré avec succès !' });
 
     } catch (error) {
-        console.error(error);
-        res.status(400).json({ error: 'Erreur lors de la création du livre' });
+        // Toute erreur (JSON invalide, Sharp, MongoDB, etc.) est transmise
+        // au middleware global qui renverra une 500 par défaut
+        next(error);
     }
 };
+
 
 
 /**
@@ -175,12 +184,12 @@ exports.modifyBook = async (req, res, next) => {
         // Récupérer le livre existant
         const book = await Book.findOne({ _id: req.params.id });
         if (!book) {
-            return res.status(404).json({ error: 'Livre non trouvé' });
+            throwError(req, 404, 'Livre non trouvé');
         }
 
         // Vérifier que l'utilisateur est bien le propriétaire
         if (book.userId !== req.auth.userId) {
-            return res.status(403).json({ error: 'Unauthorized request' });
+            throwError(req, 403, 'Requête non autorisée');
         }
 
         // Si une nouvelle image est envoyée, on gère le remplacement
@@ -188,7 +197,9 @@ exports.modifyBook = async (req, res, next) => {
             // Supprimer l'ancienne image
             const oldFilename = book.imageUrl.split('/images/')[1];
             fs.unlink(path.join('images', oldFilename), (err) => {
-                if (err) console.error('Erreur suppression ancienne image :', err);
+                if (err) {
+                    console.error('Erreur suppression ancienne image :', err);
+                }
             });
 
             // Générer la nouvelle image optimisée avec Sharp
@@ -202,7 +213,9 @@ exports.modifyBook = async (req, res, next) => {
 
             // Supprimer le fichier brut uploadé par Multer
             fs.unlink(req.file.path, (err) => {
-                if (err) console.error('Erreur suppression fichier temporaire :', err);
+                if (err) {
+                    console.error('Erreur suppression fichier temporaire :', err);
+                }
             });
 
             // Mettre à jour l'URL de l'image dans l'objet de mise à jour
@@ -218,10 +231,12 @@ exports.modifyBook = async (req, res, next) => {
         res.status(200).json({ message: 'Livre modifié avec succès !' });
 
     } catch (error) {
-        console.error(error);
-        res.status(400).json({ error: 'Erreur lors de la modification du livre' });
+        // Toute erreur technique (JSON.parse, Sharp, MongoDB, fs, etc.)
+        // est transmise au middleware global
+        next(error);
     }
 };
+
 
 
 /**
@@ -234,42 +249,41 @@ exports.modifyBook = async (req, res, next) => {
  * - supprime l'image associée du serveur
  * - supprime le livre de la base de données
  */
-exports.deleteBook = (req, res, next) => {
-    // On commence par récupérer le livre en base
-    Book.findOne({ _id: req.params.id })
-        .then(book => {
-            if (!book) {
-                return res.status(404).json({ error: 'Livre non trouvé' });
+exports.deleteBook = async (req, res, next) => {
+    try {
+        // Récupération du livre en base
+        const book = await Book.findOne({ _id: req.params.id });
+
+        if (!book) {
+            throwError(req, 404, 'Livre non trouvé');
+        }
+
+        // Vérification que l'utilisateur authentifié est bien le propriétaire
+        if (book.userId !== req.auth.userId) {
+            throwError(req, 403, 'Requête non autorisée');
+        }
+
+        // Récupération du nom du fichier image à partir de l'URL
+        const filename = book.imageUrl.split('/images/')[1];
+
+        // Suppression du fichier image du serveur
+        fs.unlink(`images/${filename}`, (err) => {
+            if (err) {
+                console.error('Erreur lors de la suppression de l’image :', err);
             }
-
-            // Vérification que l'utilisateur authentifié est bien le propriétaire
-            if (book.userId !== req.auth.userId) {
-                return res.status(403).json({ error: 'Unauthorized request' });
-            }
-
-            // Récupération du nom du fichier image à partir de l'URL
-            const filename = book.imageUrl.split('/images/')[1];
-
-            // Suppression du fichier image du serveur
-            fs.unlink(`images/${filename}`, (err) => {
-                if (err) {
-                    console.error('Erreur lors de la suppression de l’image :', err);
-                }
-
-                // Suppression du livre de la base de données
-                Book.deleteOne({ _id: req.params.id })
-                    .then(() => {
-                        res.status(200).json({ message: 'Livre supprimé avec succès !' });
-                    })
-                    .catch(error => {
-                        res.status(400).json({ error });
-                    });
-            });
-        })
-        .catch(error => {
-            res.status(500).json({ error });
         });
+
+        // Suppression du livre de la base de données
+        await Book.deleteOne({ _id: req.params.id });
+
+        res.status(200).json({ message: 'Livre supprimé avec succès !' });
+
+    } catch (error) {
+        // Toute erreur technique est transmise au middleware global
+        next(error);
+    }
 };
+
 
 /**
  * Noter un livre
@@ -283,48 +297,47 @@ exports.deleteBook = (req, res, next) => {
  * - recalcule la moyenne averageRating
  * - sauvegarde et renvoie le livre mis à jour
  */
-exports.rateBook = (req, res, next) => {
-    const userId = req.auth.userId; // On utilise l'ID venant du token (sécurisé)
-    const rating = req.body.rating;
+exports.rateBook = async (req, res, next) => {
+    try {
+        const userId = req.auth.userId; // ID venant du token (sécurisé)
+        const rating = req.body.rating;
 
-    // Vérification que la note est bien entre 0 et 5
-    if (rating < 0 || rating > 5) {
-        return res.status(400).json({ error: 'La note doit être comprise entre 0 et 5' });
+        // Vérification que la note est bien entre 0 et 5
+        if (typeof rating !== 'number' || rating < 0 || rating > 5) {
+            throwError(req, 400, 'La note doit être comprise entre 0 et 5');
+        }
+
+        // Récupération du livre en base
+        const book = await Book.findOne({ _id: req.params.id });
+
+        if (!book) {
+            throwError(req, 404, 'Livre non trouvé');
+        }
+
+        // Vérification que l'utilisateur n'a pas déjà noté ce livre
+        const alreadyRated = book.ratings.find(r => r.userId === userId);
+        if (alreadyRated) {
+            throwError(req, 400, 'Vous avez déjà noté ce livre');
+        }
+
+        // Ajout de la nouvelle note dans le tableau ratings
+        book.ratings.push({ userId: userId, grade: rating });
+
+        // Recalcul de la moyenne des notes
+        const sum = book.ratings.reduce((acc, curr) => acc + curr.grade, 0);
+        const average = sum / book.ratings.length;
+        book.averageRating = Math.round(average * 10) / 10; // Arrondi à 1 décimale
+
+        // Sauvegarde du livre mis à jour
+        const updatedBook = await book.save();
+
+        // On renvoie le livre mis à jour en réponse
+        res.status(200).json(updatedBook);
+
+    } catch (error) {
+        // Toute erreur technique (MongoDB, etc.) est transmise au middleware global
+        next(error);
     }
-
-    // On récupère le livre en base
-    Book.findOne({ _id: req.params.id })
-        .then(book => {
-            if (!book) {
-                return res.status(404).json({ error: 'Livre non trouvé' });
-            }
-
-            // Vérification que l'utilisateur n'a pas déjà noté ce livre
-            const alreadyRated = book.ratings.find(r => r.userId === userId);
-            if (alreadyRated) {
-                return res.status(400).json({ error: 'Vous avez déjà noté ce livre' });
-            }
-
-            // Ajout de la nouvelle note dans le tableau ratings
-            book.ratings.push({ userId: userId, grade: rating });
-
-            // Recalcul de la moyenne des notes
-            const sum = book.ratings.reduce((acc, curr) => acc + curr.grade, 0);
-            const average = sum / book.ratings.length;
-            book.averageRating = Math.round(average * 10) / 10; // Arrondi à 1 décimale
-
-            // Sauvegarde du livre mis à jour
-            book.save()
-                .then(updatedBook => {
-                    // On renvoie le livre mis à jour en réponse
-                    res.status(200).json(updatedBook);
-                })
-                .catch(error => {
-                    res.status(400).json({ error });
-                });
-        })
-        .catch(error => {
-            res.status(500).json({ error });
-        });
 };
+
 

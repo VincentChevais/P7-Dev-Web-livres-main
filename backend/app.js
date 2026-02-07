@@ -68,4 +68,19 @@ app.use('/api/auth', userRoutes);
  */
 app.use('/api/books', bookRoutes);
 
+/**
+ * Middleware de gestion des erreurs
+ * Ce middleware doit être défini après tous les autres middlewares et routes
+ * Il capture les erreurs lancées dans les controllers et renvoie une réponse JSON
+ */
+app.use((error, req, res, next) => {
+    console.error(error);
+
+    const status = error.statusCode || 500;
+    const message = error.message || 'Erreur serveur';
+
+    res.status(status).json({ error: message });
+});
+
+
 module.exports = app;

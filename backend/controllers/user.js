@@ -13,6 +13,7 @@
 const bcrypt = require('bcrypt'); // Librairie de hachage sécurisé des mots de passe
 const User = require('../models/User'); // Modèle Mongoose User
 const jwt = require('jsonwebtoken'); // Librairie de gestion des tokens d'authentification
+const { throwError } = require('../utils/errorHandler'); // Utilitaire de gestion des erreurs
 
 /**
  * INSCRIPTION (signup)
@@ -20,34 +21,39 @@ const jwt = require('jsonwebtoken'); // Librairie de gestion des tokens d'authen
  * Le mot de passe n'est JAMAIS stocké en clair :
  * il est hashé avec bcrypt avant d'être enregistré en base de données.
  */
-exports.signup = (req, res, next) => {
-    /**
-   * bcrypt.hash() permet de transformer un mot de passe en hash irréversible.
-   * - req.body.password : mot de passe envoyé par l'utilisateur
-   * - 10 : nombre de "salt rounds" (coût de calcul)
-   *   Plus le nombre est élevé, plus le hash est sécurisé mais lent.
-   */
-    bcrypt.hash(req.body.password, 10)
-        .then(hash => {
-            /**
-            * Une fois le mot de passe hashé, on crée un nouvel utilisateur.
-            * On stocke uniquement le hash en base, jamais le mot de passe en clair.
-            */
-            const user = new User({
-                email: req.body.email,
-                password: hash
-            });
-            // Enregistrement de l'utilisateur dans MongoDB
-            return user.save();
-        })
-        .then(() => {
-            // Réponse envoyée si la création de l'utilisateur s'est bien passée
-            res.status(201).json({ message: 'Utilisateur créé !' });
-        })
-        .catch(error => {
-            // Gestion des erreurs (email déjà existant, données invalides, etc.)
-            res.status(400).json({ error });
+exports.signup = async (req, res, next) => {
+    try {
+        /**
+         * bcrypt.hash() transforme le mot de passe en hash irréversible.
+         * - req.body.password : mot de passe envoyé par l'utilisateur
+         * - 10 : nombre de "salt rounds" (coût de calcul)
+         */
+        const hash = await bcrypt.hash(req.body.password, 10);
+
+        /**
+         * Création du nouvel utilisateur.
+         * On stocke uniquement le hash en base, jamais le mot de passe en clair.
+         */
+        const user = new User({
+            email: req.body.email,
+            password: hash
         });
+
+        // Enregistrement de l'utilisateur dans MongoDB
+        await user.save();
+
+        // Réponse envoyée si la création s'est bien passée
+        res.status(201).json({ message: 'Utilisateur créé !' });
+
+    } catch (error) {
+        /**
+         * Les erreurs techniques (MongoDB, bcrypt, etc.) sont transmises
+         * au middleware global qui renverra une 500 par défaut.
+         * Les erreurs de validation sont normalement déjà gérées
+         * par le middleware validators en amont.
+         */
+        next(error);
+    }
 };
 
 
@@ -61,38 +67,41 @@ exports.signup = (req, res, next) => {
  * Si l'authentification réussit, un token JWT est généré et renvoyé
  * au frontend. Ce token sera utilisé pour sécuriser les routes protégées.
  */
-exports.login = (req, res, next) => {
-    // Recherche de l'utilisateur dans la base par son email
-    User.findOne({ email: req.body.email })
-        .then(user => {
-            // Si l'utilisateur n'existe pas, on renvoie une erreur 401 (non autorisé)
-            if (!user) {
-                return res.status(401).json({ error: 'Utilisateur non trouvé' });
-            }
+exports.login = async (req, res, next) => {
+    try {
+        // Recherche de l'utilisateur dans la base par son email
+        const user = await User.findOne({ email: req.body.email });
 
-            // L'utilisateur existe, on compare le mot de passe fourni avec le hash en base
-            bcrypt.compare(req.body.password, user.password)
-                .then(valid => {
-                    // Si le mot de passe est incorrect, on renvoie une erreur 401
-                    if (!valid) {
-                        return res.status(401).json({ error: 'Mot de passe incorrect' });
-                    }
+        // Si l'utilisateur n'existe pas, erreur d'authentification
+        if (!user) {
+            throwError(req, 401, 'Utilisateur non trouvé');
+        }
 
-                    // Authentification réussie : on génère un token JWT
-                    const token = jwt.sign(
-                        { userId: user._id },
-                        process.env.JWT_SECRET,
-                        { expiresIn: '24h' }
-                    );
+        // Comparaison du mot de passe fourni avec le hash en base
+        const valid = await bcrypt.compare(req.body.password, user.password);
 
-                    // On renvoie l'ID utilisateur et le token au frontend
-                    res.status(200).json({
-                        userId: user._id,
-                        token: token
-                    });
-                });
-        })
-        .catch(error => res.status(500).json({ error })); // Erreur serveur
+        // Si le mot de passe est incorrect, erreur d'authentification
+        if (!valid) {
+            throwError(req, 401, 'Mot de passe incorrect');
+        }
+
+        // Authentification réussie : génération du token JWT
+        const token = jwt.sign(
+            { userId: user._id },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        // On renvoie l'ID utilisateur et le token au frontend
+        res.status(200).json({
+            userId: user._id,
+            token: token
+        });
+
+    } catch (error) {
+        // Toute erreur technique (MongoDB, bcrypt, jwt, etc.) est transmise au middleware global
+        next(error);
+    }
 };
 
 

@@ -12,13 +12,16 @@ const router = express.Router();
 // Import du controller utilisateur
 const userCtrl = require('../controllers/user');
 
+// Import des middlewares de validation
+const { validateSignup } = require('../middleware/validators');
+
 /**
  * Route d'inscription (signup)
  * Méthode : POST
  * URL finale : /api/auth/signup
  * Cette route appelle la fonction signup du controller utilisateur.
  */
-router.post('/signup', userCtrl.signup);
+router.post('/signup', validateSignup, userCtrl.signup);
 
 /**
  * Route de connexion (login)
