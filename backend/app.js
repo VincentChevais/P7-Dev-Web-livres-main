@@ -74,13 +74,25 @@ app.use('/api/books', bookRoutes);
  * Il capture les erreurs lancées dans les controllers et renvoie une réponse JSON
  */
 app.use((error, req, res, next) => {
-    console.error(error);
+    // Log côté serveur (pour le debug)
+    console.error('🔥 Erreur interceptée :', {
+        message: error.message,
+        statusCode: error.statusCode || 500,
+        stack: error.stack
+    });
 
+    // Statut par défaut si non défini
     const status = error.statusCode || 500;
-    const message = error.message || 'Erreur serveur';
+
+    // Message envoyé au client
+    const message =
+        status === 500
+            ? 'Erreur serveur'
+            : error.message;
 
     res.status(status).json({ error: message });
 });
+
 
 
 module.exports = app;

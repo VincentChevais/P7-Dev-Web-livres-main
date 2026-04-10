@@ -88,8 +88,12 @@ exports.getBestRatingBooks = async (req, res, next) => {
  */
 exports.createBook = async (req, res, next) => {
     try {
-        // Les données du livre arrivent sous forme de string JSON à cause de Multer
-        const bookObject = JSON.parse(req.body.book);
+        // Validation : on exige une image à la création d'un livre
+        if (!req.file) {
+            throwError(req, 400, 'Image requise pour créer un livre');
+        }
+
+        const bookObject = req.body.book;
 
         // Sécurité : on supprime les champs qui ne doivent pas venir du client
         delete bookObject._id;
