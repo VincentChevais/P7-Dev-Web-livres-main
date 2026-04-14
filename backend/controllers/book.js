@@ -126,7 +126,10 @@ exports.createBook = async (req, res, next) => {
         const outputPath = path.join('images', outputFilename);
 
         await sharp(req.file.path)
-            .resize(800)            // largeur max 800px
+            .resize(400, 600, { // dimensions max et ajustement 
+                fit: 'cover',
+                position: 'centre'
+            })
             .jpeg({ quality: 80 })  // compression
             .toFile(outputPath);
 
