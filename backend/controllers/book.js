@@ -302,7 +302,7 @@ exports.deleteBook = async (req, res, next) => {
  *
  * Cette route :
  * - vérifie que le livre existe
- * - vérifie que la note est entre 1 et 5
+ * - vérifie que la note est entre 0 et 5
  * - empêche un utilisateur de noter deux fois le même livre
  * - ajoute la note dans le tableau ratings
  * - recalcule la moyenne averageRating
@@ -314,7 +314,7 @@ exports.rateBook = async (req, res, next) => {
         const rating = req.body.rating;
 
         // Vérification que la note est bien entre 0 et 5
-        if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+        if (typeof rating !== 'number' || rating < 0 || rating > 5) {
             throwError(req, 400, 'La note doit être comprise entre 1 et 5');
         }
 

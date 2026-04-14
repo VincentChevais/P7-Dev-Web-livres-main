@@ -117,7 +117,7 @@ exports.validateBook = (req, res, next) => {
     const cleanAuthor = author.trim();
     const cleanGenre = genre.trim();
 
-    // Validation du titre (non vide, max 200 caractères)
+    // Validation du titre (non vide, max 200 caractères) 
     if (!textRegex.test(cleanTitle)) {
         throwError(req, 400, 'Titre invalide');
     }
@@ -125,6 +125,11 @@ exports.validateBook = (req, res, next) => {
     // Validation de l'auteur (non vide, max 200 caractères)
     if (!textRegex.test(cleanAuthor)) {
         throwError(req, 400, 'Auteur invalide');
+    }
+
+    // Rejette les chaines vides et valeurs vides
+    if (year === undefined || year === null || year === '') {
+        throwError(req, 400, 'Année invalide');
     }
 
     // Conversion et validation de l'année 
