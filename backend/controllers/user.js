@@ -20,6 +20,8 @@ const { throwError } = require('../utils/errorHandler'); // Utilitaire de gestio
  * Cette fonction permet de créer un nouvel utilisateur.
  * Le mot de passe n'est JAMAIS stocké en clair :
  * il est hashé avec bcrypt avant d'être enregistré en base de données.
+ * 
+ * Erreurs en code 409 : problème de conflit
  */
 exports.signup = async (req, res, next) => {
     try {
@@ -46,6 +48,9 @@ exports.signup = async (req, res, next) => {
         res.status(201).json({ message: 'Utilisateur créé !' });
 
     } catch (error) {
+        if (error.code === 11000) {
+            throwError(req, 409, 'Cet email est déjà utilisé');
+        }
         /**
          * Les erreurs techniques (MongoDB, bcrypt, etc.) sont transmises
          * au middleware global qui renverra une 500 par défaut.
@@ -66,6 +71,8 @@ exports.signup = async (req, res, next) => {
  *
  * Si l'authentification réussit, un token JWT est généré et renvoyé
  * au frontend. Ce token sera utilisé pour sécuriser les routes protégées.
+ * 
+ * Erreurs en code 401 : problème d'authentification
  */
 exports.login = async (req, res, next) => {
     try {
@@ -74,7 +81,7 @@ exports.login = async (req, res, next) => {
 
         // Si l'utilisateur n'existe pas, erreur d'authentification
         if (!user) {
-            throwError(req, 401, 'Utilisateur non trouvé');
+            throwError(req, 401, 'Identifiants invalides');
         }
 
         // Comparaison du mot de passe fourni avec le hash en base
@@ -82,7 +89,7 @@ exports.login = async (req, res, next) => {
 
         // Si le mot de passe est incorrect, erreur d'authentification
         if (!valid) {
-            throwError(req, 401, 'Mot de passe incorrect');
+            throwError(req, 401, 'Identifiants invalides');
         }
 
         // Authentification réussie : génération du token JWT

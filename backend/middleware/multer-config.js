@@ -40,7 +40,7 @@ const storage = multer.diskStorage({
 module.exports = multer({
     storage: storage,
     limits: {
-        fileSize: 10 * 1024 * 1024 // 2 Mo max
+        fileSize: 10 * 1024 * 1024 // 10 Mo max
     },
     fileFilter: (req, file, cb) => {
         if (MIME_TYPES[file.mimetype]) {

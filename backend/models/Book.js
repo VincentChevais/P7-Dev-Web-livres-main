@@ -27,6 +27,7 @@ const ratingSchema = mongoose.Schema({
 /**
  * Schéma principal Book
  * Il décrit la structure complète d'un livre en base de données.
+ * - _id créé automatiquement par MongoDB à la création du modèle
  */
 const bookSchema = mongoose.Schema({
     userId: {

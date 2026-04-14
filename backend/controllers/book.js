@@ -93,6 +93,7 @@ exports.createBook = async (req, res, next) => {
             throwError(req, 400, 'Image requise pour créer un livre');
         }
 
+        // validateBook a déjà parsé.
         const bookObject = req.body.book;
 
         // Sécurité : on supprime les champs qui ne doivent pas venir du client
@@ -175,15 +176,18 @@ exports.modifyBook = async (req, res, next) => {
 
         // Préparer l'objet de mise à jour selon qu'il y a une image ou non
         if (req.file) {
-            // Cas avec nouvelle image : les données sont dans req.body.book (string JSON)
-            bookObject = JSON.parse(req.body.book);
+            // Cas avec nouvelle image : validateBook a déjà parsé req.body.book
+            bookObject = req.body.book;
         } else {
             // Cas sans nouvelle image : les données sont directement dans req.body
             bookObject = { ...req.body };
         }
 
-        // Sécurité : on ne fait jamais confiance au userId venant du client
+        // Sécurité : on ne fait jamais confiance aux données venant du client
         delete bookObject.userId;
+        delete bookObject.ratings;
+        delete bookObject.averageRating;
+        delete bookObject._id;
 
         // Récupérer le livre existant
         const book = await Book.findOne({ _id: req.params.id });
@@ -295,7 +299,7 @@ exports.deleteBook = async (req, res, next) => {
  *
  * Cette route :
  * - vérifie que le livre existe
- * - vérifie que la note est entre 0 et 5
+ * - vérifie que la note est entre 1 et 5
  * - empêche un utilisateur de noter deux fois le même livre
  * - ajoute la note dans le tableau ratings
  * - recalcule la moyenne averageRating
@@ -307,8 +311,8 @@ exports.rateBook = async (req, res, next) => {
         const rating = req.body.rating;
 
         // Vérification que la note est bien entre 0 et 5
-        if (typeof rating !== 'number' || rating < 0 || rating > 5) {
-            throwError(req, 400, 'La note doit être comprise entre 0 et 5');
+        if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+            throwError(req, 400, 'La note doit être comprise entre 1 et 5');
         }
 
         // Récupération du livre en base

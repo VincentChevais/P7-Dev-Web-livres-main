@@ -9,6 +9,7 @@ const mongoose = require('mongoose');
 
 /**
  * Schéma utilisateur
+ * - _id créé automatiquement par MongoDB à la création du modèle
  * - email : adresse email unique et obligatoire
  * - password : mot de passe hashé avec bcrypt (jamais en clair)
  */

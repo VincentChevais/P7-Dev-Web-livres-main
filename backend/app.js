@@ -75,7 +75,7 @@ app.use('/api/books', bookRoutes);
  */
 app.use((error, req, res, next) => {
     // Log côté serveur (pour le debug)
-    console.error('🔥 Erreur interceptée :', {
+    console.error('Erreur interceptée :', {
         message: error.message,
         statusCode: error.statusCode || 500,
         stack: error.stack

@@ -16,6 +16,7 @@ const { throwError } = require('../utils/errorHandler');
 
 /*
 * Validation des données d'inscription
+* Erreurs en code 400 : problème de forme, de validation
 */
 exports.validateSignup = (req, res, next) => {
     let { email, password } = req.body;
@@ -25,9 +26,8 @@ exports.validateSignup = (req, res, next) => {
         throwError(req, 400, 'Données invalides');
     }
 
-    // Nettoyage des espaces
-    const cleanEmail = email.trim();
-    const cleanPassword = password.trim();
+    // Nettoyage des espaces et lowercase
+    const cleanEmail = email.trim().toLowerCase();
 
     // Validation de l'email
     if (!emailRegex.test(cleanEmail)) {
@@ -35,13 +35,45 @@ exports.validateSignup = (req, res, next) => {
     }
 
     // Validation du mot de passe (min 8 caractères)
-    if (!passwordRegex.test(cleanPassword)) {
+    if (!passwordRegex.test(password)) {
         throwError(req, 400, 'Mot de passe invalide. Min 8 caractères.');
     }
 
     // On remet les valeurs propres dans req.body
     req.body.email = cleanEmail;
-    req.body.password = cleanPassword;
+    req.body.password = password;
+
+    next();
+};
+
+/*
+* Validation des données de connexion
+* Erreurs en code 400 : problème de forme, de validation
+*/
+exports.validateLogin = (req, res, next) => {
+    let { email, password } = req.body;
+
+    // Vérification des types
+    if (typeof email !== 'string' || typeof password !== 'string') {
+        throwError(req, 400, 'Données invalides');
+    }
+
+    // Nettoyage de l'email uniquement
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Validation email
+    if (!emailRegex.test(cleanEmail)) {
+        throwError(req, 400, 'Email invalide');
+    }
+
+    // Vérification minimale du mot de passe
+    if (password.length === 0 || password.length > 128) {
+        throwError(req, 400, 'Mot de passe invalide');
+    }
+
+    // Réinjection dans req.body
+    req.body.email = cleanEmail;
+    req.body.password = password;
 
     next();
 };
@@ -85,25 +117,25 @@ exports.validateBook = (req, res, next) => {
     const cleanAuthor = author.trim();
     const cleanGenre = genre.trim();
 
-    // Validation du titre (au moins 1 caractère, pas de caractères interdits)
-    if (cleanTitle.length === 0 || !textRegex.test(cleanTitle)) {
+    // Validation du titre (non vide, max 200 caractères)
+    if (!textRegex.test(cleanTitle)) {
         throwError(req, 400, 'Titre invalide');
     }
 
-    // Validation de l'auteur (au moins 1 caractère, pas de caractères interdits)
-    if (cleanAuthor.length === 0 || !textRegex.test(cleanAuthor)) {
+    // Validation de l'auteur (non vide, max 200 caractères)
+    if (!textRegex.test(cleanAuthor)) {
         throwError(req, 400, 'Auteur invalide');
     }
 
     // Conversion et validation de l'année 
     const parsedYear = Number(year);
 
-    if (Number.isNaN(parsedYear) || parsedYear < 0 || parsedYear > new Date().getFullYear()) {
+    if (!Number.isInteger(parsedYear) || parsedYear < 0 || parsedYear > new Date().getFullYear()) {
         throwError(req, 400, 'Année invalide');
     }
 
-    // Validation du genre (genre non vide, max 200 caractères, pas de caractères interdits)
-    if (cleanGenre.length === 0 || !textRegex.test(cleanGenre)) {
+    // Validation du genre (non vide, max 200 caractères)
+    if (!textRegex.test(cleanGenre)) {
         throwError(req, 400, 'Genre invalide');
     }
 

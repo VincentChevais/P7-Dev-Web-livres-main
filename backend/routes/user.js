@@ -13,7 +13,7 @@ const router = express.Router();
 const userCtrl = require('../controllers/user');
 
 // Import des middlewares de validation
-const { validateSignup } = require('../middleware/validators');
+const { validateSignup, validateLogin } = require('../middleware/validators');
 
 /**
  * Route d'inscription (signup)
@@ -29,7 +29,7 @@ router.post('/signup', validateSignup, userCtrl.signup);
  * URL finale : /api/auth/login
  * Cette route appelle la fonction login du controller utilisateur.
  */
-router.post('/login', userCtrl.login);
+router.post('/login', validateLogin, userCtrl.login);
 
 // Export du routeur pour l'utiliser dans app.js
 module.exports = router;
