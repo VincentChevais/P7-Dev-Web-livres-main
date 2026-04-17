@@ -37,9 +37,11 @@ app.use(cors());
  * Connexion à la base de données MongoDB via Mongoose.
  * L'URI est stockée dans le fichier .env pour des raisons de sécurité.
  */
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(
+    `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_CLUSTER}/${process.env.MONGO_DB}`
+)
     .then(() => console.log('Connexion à MongoDB réussie !'))
-    .catch(() => console.log('Connexion à MongoDB échouée !'));
+    .catch((error) => console.log('Connexion à MongoDB échouée !', error));
 
 /** * Middleware de limitation de débit pour les routes d'authentification
  * Limite à 100 requêtes par IP toutes les 15 minutes
