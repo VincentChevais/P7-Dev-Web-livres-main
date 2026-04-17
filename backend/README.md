@@ -86,6 +86,7 @@ Le serveur démarre sur :
 
 ## Structure du projet
 
+```bash
 ├── controllers/   # Logique métier
 ├── models/        # Schémas Mongoose
 ├── routes/        # Définition des routes
@@ -94,6 +95,7 @@ Le serveur démarre sur :
 ├── images/        # Images uploadées
 ├── app.js
 └── server.js
+```
 
 ---
 
